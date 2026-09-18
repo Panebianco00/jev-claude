@@ -187,6 +187,7 @@ export function governingThreshold(id: string, t: Thresholds): { value: number; 
   const table: Record<string, [number, string]> = {
     [RESERVED.injection]: [t.injection, "injection"],
     [RESERVED.needsUserPreference]: [t.needsUserPreference, "needsUserPreference"],
+    [RESERVED.delegated]: [t.delegated, "delegated"],
     [RESERVED.optionsAreNeutral]: [t.optionNeutrality, "optionNeutrality"],
     [RESERVED.reversibleLocally]: [t.stakes.mediumIrreversible, "stakes.mediumIrreversible"],
     [RESERVED.changesPublicInterface]: [t.stakes.mediumPublic, "stakes.mediumPublic"],

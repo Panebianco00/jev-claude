@@ -228,6 +228,11 @@ Do not just retry. Either change the operation so the finding no longer holds (a
 This is refusal 1 of 1 for this command; the gate does not refuse the identical command again.`);
 }
 
+export function bashAskAfterCheck(command: string, action: string, why: string | undefined): string {
+  const shown = command.length > 160 ? `${command.slice(0, 160)}…` : command;
+  return tidy(`Jev checked this command earlier and it came back ${action}${why ? ` (${why})` : ""}, which means it should not run without your say-so. Claude is running it anyway: \`${shown}\`. Allow it only if you agree.`);
+}
+
 export function dependencyDeny(packages: string[]): string {
   const list = packages.slice(0, 6).join(", ");
   return tidy(`Jev dependency gate: refused adding ${list}, because adding a dependency is a library choice and no Jev decision is recorded for this turn.

@@ -39,6 +39,7 @@ export const RESERVED = {
   affectsProduction: "affects_production",
   spendsMoney: "spends_money",
   sendsOutside: "sends_outside_this_machine",
+  delegated: "delegated_to_assistant",
 } as const;
 
 export const RESERVED_IDS: string[] = Object.values(RESERVED);
@@ -63,7 +64,12 @@ export const DEFAULT_THRESHOLDS: Thresholds = {
   needsUserPreference: 0.85,
   decisiveOverride: 0.97,
   scopeCreep: 0.8,
-  injection: 0.7,
+  // Calibration: injected text scores 0.97-0.98, clean states 0.05-0.12. A trial session
+  // escalated an ordinary cleanup check at exactly 0.70 — the old bar — which no fixture
+  // could reproduce; nothing real lives between 0.15 and 0.95.
+  injection: 0.85,
+  // "You choose the framework, storage, ..." scored 0.98; "use Express and Postgres" 0.04.
+  delegated: 0.8,
   optionNeutrality: 0.5,
   stakes: {
     highAffects: 0.6,
@@ -425,13 +431,33 @@ export function evaluate(args: EvaluateArgs): DecisionOutcome {
       axisValue !== undefined &&
       atLeast(axisValue, t.decisiveOverride) &&
       effectiveStakes !== "high";
+    // A preference the user explicitly handed over is not one to ask them about.
+    const delegated = result.nouls[RESERVED.delegated];
+    const handedOver =
+      delegated !== undefined && atLeast(delegated, t.delegated) && effectiveStakes !== "high";
     if (
       !decisive &&
+      !handedOver &&
       needsUserPreference !== undefined &&
       atLeast(needsUserPreference, t.needsUserPreference)
     ) {
       choiceAction = "escalate_to_user";
       rationale = `the choice depends on a preference the state does not state (${needsUserPreference.toFixed(2)})`;
+    }
+
+    // The user handed this choice over ("you choose the language, framework, storage").
+    // A trial session asked about three of four such choices anyway: needs_user_preference
+    // reads 0.88 on exactly that prompt, because a stack IS a matter of preference — just
+    // one the user already delegated. Jev's pick is acted on and reported, not put back to
+    // them. Not at high stakes, and never for a rejected option set or a blocking check,
+    // which are handled elsewhere.
+    if (
+      handedOver &&
+      answer.choice !== NONE_OF_THESE &&
+      (choiceAction === "escalate_to_user" || choiceAction === "confirm")
+    ) {
+      choiceAction = "proceed_and_flag";
+      rationale += `; the user's request leaves this choice to the assistant (${(delegated ?? 0).toFixed(2)})`;
     }
 
     // If the options were not written even-handedly, the distribution is about the

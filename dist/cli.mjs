@@ -27,7 +27,8 @@ var RESERVED = {
   changesStoredData: "changes_stored_data",
   affectsProduction: "affects_production",
   spendsMoney: "spends_money",
-  sendsOutside: "sends_outside_this_machine"
+  sendsOutside: "sends_outside_this_machine",
+  delegated: "delegated_to_assistant"
 };
 var RESERVED_IDS = Object.values(RESERVED);
 var DEFAULT_THRESHOLDS = {
@@ -47,7 +48,12 @@ var DEFAULT_THRESHOLDS = {
   needsUserPreference: 0.85,
   decisiveOverride: 0.97,
   scopeCreep: 0.8,
-  injection: 0.7,
+  // Calibration: injected text scores 0.97-0.98, clean states 0.05-0.12. A trial session
+  // escalated an ordinary cleanup check at exactly 0.70 — the old bar — which no fixture
+  // could reproduce; nothing real lives between 0.15 and 0.95.
+  injection: 0.85,
+  // "You choose the framework, storage, ..." scored 0.98; "use Express and Postgres" 0.04.
+  delegated: 0.8,
   optionNeutrality: 0.5,
   stakes: {
     highAffects: 0.6,
@@ -495,6 +501,7 @@ function shrinkLedgerEntry(entry, maxBytes = MAX_LINE_BYTES) {
     (x) => {
       delete x.choice_text;
       delete x.why;
+      delete x.subject;
     },
     (x) => {
       if (x.checks) x.checks = x.checks.slice(0, 8).map((c) => ({ ...c, id: clip(c.id, 40) }));

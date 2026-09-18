@@ -137,3 +137,23 @@ export function dependencyAdds(command: string): string[] {
   }
   return out;
 }
+
+/** Whitespace-insensitive form used to recognise the same command written twice. */
+function normalise(command: string): string {
+  return command.replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Whether `command` is the one a check was about. Exact after normalising whitespace, or one
+ * containing the other: Claude often checks `rm -f data/links.db` and then runs it with the
+ * `-wal` and `-shm` files appended, or checks the full pipeline and runs one step of it.
+ */
+export function sameCommand(command: string, checked: string): boolean {
+  const a = normalise(command);
+  const b = normalise(checked);
+  if (!a || !b) return false;
+  if (a === b) return true;
+  const shorter = a.length < b.length ? a : b;
+  // Containment only counts for a substantial command, never for a bare `rm` or `git`.
+  return shorter.length >= 12 && (a.includes(b) || b.includes(a));
+}

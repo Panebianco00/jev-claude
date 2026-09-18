@@ -97,6 +97,7 @@ export function shrinkLedgerEntry(entry: LedgerEntry, maxBytes = MAX_LINE_BYTES)
     (x) => {
       delete x.choice_text;
       delete x.why;
+      delete x.subject;
     },
     (x) => {
       if (x.checks) x.checks = x.checks.slice(0, 8).map((c) => ({ ...c, id: clip(c.id, 40) }));
@@ -272,6 +273,8 @@ export function buildLedgerEntry(args: BuildLedgerArgs): LedgerEntry {
     if (choiceText !== undefined) entry.choice_text = choiceText.slice(0, 300);
     const why = str(rec["why"]);
     if (why !== undefined) entry.why = why.slice(0, 200);
+    const subject = str(rec["subject"]);
+    if (subject !== undefined) entry.subject = subject.slice(0, 300);
     const p1 = num(pick(rec, "p1", "p"));
     if (p1 !== undefined) entry.p1 = p1;
     const margin = num(rec["margin"]);

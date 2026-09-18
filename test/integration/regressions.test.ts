@@ -270,6 +270,27 @@ describe("bash gate", () => {
     }
   });
 
+  it("asks the user when Claude runs a command an earlier check told it not to", async () => {
+    // Regression: a trial session got escalate_to_user on a cleanup check and deleted the
+    // file anyway. `rm -f` is not on the destructive pre-filter, so nothing else caught it.
+    seedLedger("ask-1", [
+      { kind: "check", label: "cleanup-data-dir", action: "escalate_to_user", subject: "rm -f data/links.db", why: "blocking check" },
+    ]);
+    const cmd = "rm -f data/links.db data/links.db-wal data/links.db-shm";
+    const first = await runAsync("bash-gate", bash("ask-1", "p2", cmd), { TYPESAFE_BASE_URL: "http://127.0.0.1:1" });
+    expect(decisionOf(first.out)).toBe("ask");
+    expect(JSON.stringify(first.out)).toContain("escalate_to_user");
+    // Asked once: after the person has answered, the normal permission flow applies.
+    const second = await runAsync("bash-gate", bash("ask-1", "p2", cmd), { TYPESAFE_BASE_URL: "http://127.0.0.1:1" });
+    expect(decisionOf(second.out)).toBeUndefined();
+  });
+
+  it("does not ask about a command whose check cleared it", async () => {
+    seedLedger("ask-2", [{ kind: "check", label: "cleanup", action: "proceed", subject: "rm -f data/links.db" }]);
+    const out = await runAsync("bash-gate", bash("ask-2", "p2", "rm -f data/links.db"));
+    expect(out.out).toBeUndefined();
+  });
+
   it("stands down in soft mode", async () => {
     const out = await runAsync("bash-gate", bash("bash-4", "p1", "npm install left-pad"), { JEV_ENFORCEMENT: "soft" });
     expect(out.out).toBeUndefined();
@@ -366,6 +387,51 @@ describe("policy", () => {
       cfg,
     });
     expect(out.action).toBe("proceed");
+  });
+
+  it("acts on a choice the user's request left to the assistant instead of asking them", () => {
+    // Regression: "You choose the language, framework, storage" still escalated three of
+    // four decisions, because a stack is a preference (0.88) — one the user delegated.
+    const out = evaluate({
+      result: success(
+        { [RESERVED.decision]: { choice: "a", confidence: 0.3, probabilities: { a: 0.55, b: 0.15, none_of_these: 0.3 } } },
+        { [RESERVED.needsUserPreference]: 0.88, [RESERVED.delegated]: 0.98 },
+      ),
+      declaredStakes: "medium",
+      realOptionIds: ["a", "b"],
+      checks: [],
+      scores: [],
+      cfg,
+    });
+    expect(out.action).toBe("proceed_and_flag");
+    expect(out.rationale).toContain("leaves this choice to the assistant");
+  });
+
+  it("still asks at high stakes, and still asks when the user did not delegate", () => {
+    const high = evaluate({
+      result: success(
+        { [RESERVED.decision]: { choice: "a", confidence: 0.3, probabilities: { a: 0.55, b: 0.15, none_of_these: 0.3 } } },
+        { [RESERVED.delegated]: 0.98 },
+      ),
+      declaredStakes: "high",
+      realOptionIds: ["a", "b"],
+      checks: [],
+      scores: [],
+      cfg,
+    });
+    expect(high.action).toBe("escalate_to_user");
+    const notDelegated = evaluate({
+      result: success(
+        { [RESERVED.decision]: { choice: "a", confidence: 0.95, probabilities: { a: 0.95, b: 0.05 } } },
+        { [RESERVED.needsUserPreference]: 0.9, [RESERVED.delegated]: 0.04 },
+      ),
+      declaredStakes: "medium",
+      realOptionIds: ["a", "b"],
+      checks: [],
+      scores: [],
+      cfg,
+    });
+    expect(notDelegated.action).toBe("escalate_to_user");
   });
 
   it("escalates on an injected instruction but keeps Jev's answer for the record", () => {

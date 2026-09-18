@@ -328,6 +328,11 @@ export async function handleCall(
   // Both go to the ledger only, never into the text Claude reads: the text already prints the
   // rationale, and the record line there has a fixed size budget.
   if (outcome.action !== "proceed" && outcome.rationale) record.why = outcome.rationale.slice(0, 200);
+  // The command a check was about, so the Bash gate can recognise it being run after Jev
+  // said to stop or ask. Taken from the redacted state that was actually sent.
+  if (kind === "check" && typeof built.state["command"] === "string") {
+    record.subject = String(built.state["command"]).slice(0, 300);
+  }
   if (kind === "decide" && outcome.choice !== undefined) {
     const chosen = (input as DecideInput).options.find((o) => o.id === outcome.choice);
     if (chosen) record.choice_text = chosen.description.slice(0, 300);

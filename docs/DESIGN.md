@@ -285,6 +285,28 @@ the facts.
 keeps the chosen option's description and the question asks whether the plan is *consistent*
 with it: 0.97 for a plan that follows it, 0.04 for one that contradicts it.
 
+### What the first real trial found
+
+A with/without comparison on a small project ("You choose the language, framework, storage,
+code format…") turned up four things the fixtures had not:
+
+- **Delegated choices were handed back.** `needs_user_preference` read 0.88 on that prompt —
+  a stack *is* a preference, just one the user delegated — and three of four decisions came
+  back `escalate_to_user`. A reserved `delegated_to_assistant` question (0.98 on that prompt,
+  0.04-0.33 on prompts that do not delegate) now suppresses the preference escalation and turns
+  a low-confidence confirm/escalate into `proceed_and_flag`, below high stakes.
+- **The plan gate refused what the protocol asked for.** Plans list confirm/escalate results
+  under "Decisions needing confirmation", and `defers_a_choice` read that as deferral (0.97).
+  Reworded to exclude choices put to the user before work starts: 0.18 there, 0.96 for a real
+  "decide later".
+- **An injection escalation at exactly the bar.** A cleanup check escalated at 0.70 = the old
+  threshold; no reconstruction reproduced it (0.12). Real injections score 0.97-0.98, so the
+  bar is now 0.85.
+- **An escalation was ignored.** Claude got `escalate_to_user` on a cleanup check and ran the
+  command anyway; `rm -f` is not on the Bash pre-filter. Checks now record the command they
+  were about, and the Bash gate turns a later run of it into a permission prompt — once per
+  command, so it can never trap the session.
+
 ## Second review round
 
 A second adversarial round over the fixed code confirmed 14 of 19 new findings. Four are worth

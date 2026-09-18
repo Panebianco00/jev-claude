@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "jev",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Routes Claude Code's coding decisions through TypeSafe Jev: typed choices with probabilities instead of silent judgment calls, enforced at plan approval and before questions to the user.",
   "author": {
     "name": "Mattia Piancazzo",

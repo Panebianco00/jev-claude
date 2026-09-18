@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dependencyAdds, riskyReason } from "../../src/shared/commands.ts";
+import { dependencyAdds, riskyReason, sameCommand } from "../../src/shared/commands.ts";
 
 describe("riskyReason", () => {
   it.each([
@@ -74,5 +74,18 @@ describe("dependencyAdds", () => {
     "npm run build",
   ])("does not count %s, which adds nothing new", (cmd) => {
     expect(dependencyAdds(cmd)).toEqual([]);
+  });
+});
+
+describe("sameCommand", () => {
+  it("matches the checked command however it is spaced, or with files appended", () => {
+    expect(sameCommand("rm -f  data/links.db", "rm -f data/links.db")).toBe(true);
+    expect(sameCommand("rm -f data/links.db data/links.db-wal", "rm -f data/links.db")).toBe(true);
+  });
+
+  it("does not match unrelated or trivially short commands", () => {
+    expect(sameCommand("rm -f other.txt", "rm -f data/links.db")).toBe(false);
+    expect(sameCommand("rm", "rm -f data/links.db")).toBe(false);
+    expect(sameCommand("", "rm -f data/links.db")).toBe(false);
   });
 });

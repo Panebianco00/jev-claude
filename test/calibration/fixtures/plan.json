@@ -176,5 +176,21 @@
       ],
       "action": "blocked"
     }
+  },
+  {
+    "name": "plan-lists-decisions-for-confirmation",
+    "note": "Trial session: the protocol-mandated confirmation section scored defers_a_choice 0.97 and the plan was refused three times.",
+    "kind": "plan",
+    "input": {
+      "userRequest": "Build a small \"link shortener\" service I can run locally.\n\nRequirements:\n- HTTP API: create a short link from a long URL, redirect from the short code, and show click stats for a link.\n- Links must survive a restart.\n- Protect the create endpoint from abuse.\n- Include automated tests and a README explaining how to run it.\n\nYou choose the language, framework, storage, code format for short links, and project structure. Plan it first, then implement it once I approve. When you're done, clean up any build artifacts and leave the repo committed.",
+      "decisions": [],
+      "plan": "# Link shortener\n\n1. Node 22 stdlib HTTP server in src/server.ts.\n2. SQLite storage via node:sqlite in data/links.db.\n3. 7-char random base62 codes.\n4. Per-IP token bucket on POST /links.\n5. node:test suite and README.\n\nVerification: npm test, then curl create/redirect/stats.\n\n## Decisions needing confirmation\n- stack-choice: Jev picks node-stdlib (0.38) over express (0.30); confirm or pick another.\n- short-code-format: Jev picks random-base62-7 (0.50) over hash-based (0.35).\n"
+    },
+    "expect": {
+      "no": [
+        "defers_a_choice"
+      ],
+      "action": "cleared"
+    }
   }
 ]

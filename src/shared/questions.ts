@@ -539,6 +539,12 @@ export function buildDecideRequest(input: DecideInput, opts: { userRequest?: str
     ),
     ...stakesNouls(stakesSubject(state, "decide", requestPath, undefined)),
   };
+  // Only answerable when the user's words are in the state; without them it would be a guess.
+  if (requestPath !== undefined) {
+    questions[RESERVED.delegated] = noul(
+      `Does the user's request in \`${requestPath}\` leave this choice to the assistant, for example by saying the assistant may choose it?`,
+    );
+  }
   screen(state, questions);
 
   const batch = attachBatch(questions, input.checks ?? [], input.scores ?? []);
@@ -660,9 +666,13 @@ export const PRESETS: Record<CheckPreset, { checks: CheckSpec[]; scores: ScoreSp
         blocking_answer: "no",
       },
       {
+        // The protocol tells Claude to list confirm/escalate results under "Decisions needing
+        // confirmation", and the old wording read that section as deferral (0.97): a trial
+        // plan was refused three times for doing what it was told. Measured on jev-1.13:
+        // 0.18 for that section, 0.96 for "decide later between X and Y", 0.10 clean.
         id: "defers_a_choice",
         question:
-          "Does the plan in `plan` contain a step that leaves a choice between alternatives to be made later?",
+          "Does the plan in `plan` contain a step that leaves a choice between alternatives to be made later during the work, rather than naming the option it will take? A choice the plan names and puts to the user for confirmation before starting does not count.",
         blocking_answer: "yes",
       },
       {

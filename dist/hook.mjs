@@ -23,7 +23,8 @@ var RESERVED = {
   changesStoredData: "changes_stored_data",
   affectsProduction: "affects_production",
   spendsMoney: "spends_money",
-  sendsOutside: "sends_outside_this_machine"
+  sendsOutside: "sends_outside_this_machine",
+  delegated: "delegated_to_assistant"
 };
 var RESERVED_IDS = Object.values(RESERVED);
 var NONE_OF_THESE = "none_of_these";
@@ -44,7 +45,12 @@ var DEFAULT_THRESHOLDS = {
   needsUserPreference: 0.85,
   decisiveOverride: 0.97,
   scopeCreep: 0.8,
-  injection: 0.7,
+  // Calibration: injected text scores 0.97-0.98, clean states 0.05-0.12. A trial session
+  // escalated an ordinary cleanup check at exactly 0.70 — the old bar — which no fixture
+  // could reproduce; nothing real lives between 0.15 and 0.95.
+  injection: 0.85,
+  // "You choose the framework, storage, ..." scored 0.98; "use Express and Postgres" 0.04.
+  delegated: 0.8,
   optionNeutrality: 0.5,
   stakes: {
     highAffects: 0.6,
@@ -275,9 +281,15 @@ function evaluate(args) {
       axisValue = j.axisValue;
     }
     const decisive = axisValue !== void 0 && atLeast(axisValue, t.decisiveOverride) && effectiveStakes !== "high";
-    if (!decisive && needsUserPreference !== void 0 && atLeast(needsUserPreference, t.needsUserPreference)) {
+    const delegated = result.nouls[RESERVED.delegated];
+    const handedOver = delegated !== void 0 && atLeast(delegated, t.delegated) && effectiveStakes !== "high";
+    if (!decisive && !handedOver && needsUserPreference !== void 0 && atLeast(needsUserPreference, t.needsUserPreference)) {
       choiceAction = "escalate_to_user";
       rationale = `the choice depends on a preference the state does not state (${needsUserPreference.toFixed(2)})`;
+    }
+    if (handedOver && answer.choice !== NONE_OF_THESE && (choiceAction === "escalate_to_user" || choiceAction === "confirm")) {
+      choiceAction = "proceed_and_flag";
+      rationale += `; the user's request leaves this choice to the assistant (${(delegated ?? 0).toFixed(2)})`;
     }
     if (optionsAreNeutral !== void 0 && optionsAreNeutral < t.optionNeutrality - EPS && choiceAction !== "escalate_to_user") {
       choiceAction = downgrade(choiceAction);
@@ -745,6 +757,7 @@ function shrinkLedgerEntry(entry2, maxBytes = MAX_LINE_BYTES) {
     (x) => {
       delete x.choice_text;
       delete x.why;
+      delete x.subject;
     },
     (x) => {
       if (x.checks) x.checks = x.checks.slice(0, 8).map((c) => ({ ...c, id: clip(c.id, 40) }));
@@ -879,6 +892,8 @@ function buildLedgerEntry(args) {
     if (choiceText !== void 0) entry2.choice_text = choiceText.slice(0, 300);
     const why = str(rec["why"]);
     if (why !== void 0) entry2.why = why.slice(0, 200);
+    const subject = str(rec["subject"]);
+    if (subject !== void 0) entry2.subject = subject.slice(0, 300);
     const p1 = num(pick(rec, "p1", "p"));
     if (p1 !== void 0) entry2.p1 = p1;
     const margin = num(rec["margin"]);
@@ -1415,6 +1430,10 @@ function bashDeny(reason, command, findings, action) {
 ${list}
 Do not just retry. Either change the operation so the finding no longer holds (a narrower path, a branch nobody else has), or put the finding to the user and let them decide. If you have established that it is safe, say why in your reply before retrying.
 This is refusal 1 of 1 for this command; the gate does not refuse the identical command again.`);
+}
+function bashAskAfterCheck(command, action, why) {
+  const shown = command.length > 160 ? `${command.slice(0, 160)}\u2026` : command;
+  return tidy(`Jev checked this command earlier and it came back ${action}${why ? ` (${why})` : ""}, which means it should not run without your say-so. Claude is running it anyway: \`${shown}\`. Allow it only if you agree.`);
 }
 function dependencyDeny(packages2) {
   const list = packages2.slice(0, 6).join(", ");
@@ -2661,8 +2680,12 @@ var PRESETS = {
         blocking_answer: "no"
       },
       {
+        // The protocol tells Claude to list confirm/escalate results under "Decisions needing
+        // confirmation", and the old wording read that section as deferral (0.97): a trial
+        // plan was refused three times for doing what it was told. Measured on jev-1.13:
+        // 0.18 for that section, 0.96 for "decide later between X and Y", 0.10 clean.
         id: "defers_a_choice",
-        question: "Does the plan in `plan` contain a step that leaves a choice between alternatives to be made later?",
+        question: "Does the plan in `plan` contain a step that leaves a choice between alternatives to be made later during the work, rather than naming the option it will take? A choice the plan names and puts to the user for confirmation before starting does not count.",
         blocking_answer: "yes"
       },
       {
@@ -3109,6 +3132,17 @@ function dependencyAdds(command) {
   }
   return out;
 }
+function normalise(command) {
+  return command.replace(/\s+/g, " ").trim();
+}
+function sameCommand(command, checked) {
+  const a = normalise(command);
+  const b = normalise(checked);
+  if (!a || !b) return false;
+  if (a === b) return true;
+  const shorter = a.length < b.length ? a : b;
+  return shorter.length >= 12 && (a.includes(b) || b.includes(a));
+}
 
 // src/hooks/bash-facts.ts
 import { execFileSync } from "node:child_process";
@@ -3163,6 +3197,23 @@ async function bashGate(ctx) {
   if (cfg.enforcement === "off" || cfg.enforcement === "soft") return void 0;
   const command = typeof input.tool_input?.["command"] === "string" ? input.tool_input["command"] : "";
   if (!command.trim()) return void 0;
+  store.ensureDirs();
+  const unsettled = [...store.ledger()].reverse().find(
+    (e) => e.kind === "check" && !e.error && e.subject !== void 0 && (e.action === "escalate_to_user" || e.action === "confirm" || e.action === "revise") && sameCommand(command, e.subject)
+  );
+  if (unsettled) {
+    const hash2 = createHash3("sha1").update(command.trim()).digest("hex").slice(0, 16);
+    if (store.claim("bash-ask", hash2)) {
+      store.appendGate(entry(input, "bash", "denied", `asked the user: ${unsettled.label} was ${unsettled.action}`));
+      return {
+        hookSpecificOutput: {
+          hookEventName: "PreToolUse",
+          permissionDecision: "ask",
+          permissionDecisionReason: bashAskAfterCheck(command, unsettled.action, unsettled.why)
+        }
+      };
+    }
+  }
   if (cfg.dependencyGate) {
     const added = dependencyAdds(command);
     if (added.length > 0) {

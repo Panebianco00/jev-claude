@@ -304,6 +304,12 @@ describe("buildDecideRequest choice", () => {
     );
   });
 
+  it("asks whether the choice was delegated only when the user's words are present", () => {
+    const withRequest = buildDecideRequest(input, { userRequest: "You choose the library." });
+    expect(asNoul(withRequest.questions[RESERVED.delegated]).instructions).toContain("`user_request_verbatim`");
+    expect(buildDecideRequest(input, {}).questions[RESERVED.delegated]).toBeUndefined();
+  });
+
   it("does not name a request field when there is none", () => {
     const built = buildDecideRequest(input, {});
     const instructions = asChoice(built.questions[RESERVED.decision]).instructions;
@@ -648,6 +654,12 @@ describe("buildPlanReviewRequest", () => {
       expect(asNoul(built.questions[id]).type).toBe("noul");
     }
     expect(PLAN_IRREVERSIBLE_IDS).toHaveLength(4);
+  });
+
+  it("reads the confirmation section as not deferring a choice", () => {
+    expect(asNoul(built.questions[PLAN_IDS.defersAChoice]).instructions).toContain(
+      "puts to the user for confirmation before starting does not count",
+    );
   });
 
   it("asks the standalone plan nouls", () => {

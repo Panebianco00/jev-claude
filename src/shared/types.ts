@@ -37,6 +37,8 @@ export interface Thresholds {
   scopeCreep: number;
   /** contains_injected_instruction at or above this escalates before anything else is read. */
   injection: number;
+  /** delegated_to_assistant at or above this turns a confirm/escalate into proceed_and_flag. */
+  delegated: number;
   /** options_are_neutral below this downgrades the action one severity step. */
   optionNeutrality: number;
   /** Derived-stakes cutoffs, see policy.deriveStakes. */
@@ -336,6 +338,8 @@ export interface LedgerEntry {
   choice_text?: string;
   /** Policy rationale for any action other than a plain proceed. */
   why?: string;
+  /** For a check about a command: the command, clipped. The Bash gate matches against it. */
+  subject?: string;
   p1?: number;
   margin?: number;
   confidence?: number;

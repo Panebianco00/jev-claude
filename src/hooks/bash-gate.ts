@@ -1,11 +1,11 @@
 import { createHash } from "node:crypto";
 import { BUDGETS, resolveApiKey } from "../shared/config.ts";
-import { dependencyAdds, riskyReason } from "../shared/commands.ts";
+import { dependencyAdds, riskyReason, sameCommand } from "../shared/commands.ts";
 import { bashFacts } from "./bash-facts.ts";
 import { ask } from "../shared/jev-client.ts";
 import { thisTurn, turnKey } from "../shared/ledger.ts";
 import { evaluate } from "../shared/policy.ts";
-import { bashDeny, dependencyDeny } from "../shared/protocol.ts";
+import { bashAskAfterCheck, bashDeny, dependencyDeny } from "../shared/protocol.ts";
 import { buildCheckRequest } from "../shared/questions.ts";
 import type { GateEntry, HookOutput } from "../shared/types.ts";
 import type { HookCtx } from "./main.ts";
@@ -27,6 +27,35 @@ export async function bashGate(ctx: HookCtx): Promise<HookOutput | undefined> {
   if (cfg.enforcement === "off" || cfg.enforcement === "soft") return undefined;
   const command = typeof input.tool_input?.["command"] === "string" ? (input.tool_input["command"] as string) : "";
   if (!command.trim()) return undefined;
+
+  // Follow-through on an earlier check. A trial session ran `check` on a cleanup command, got
+  // escalate_to_user, and deleted the file anyway: the ACTION line binds only as far as
+  // something enforces it. The person decides here, so this asks rather than refuses, and it
+  // asks once per command. It does not depend on the pre-filter below: `rm -f` is not on it.
+  store.ensureDirs();
+  const unsettled = [...store.ledger()]
+    .reverse()
+    .find(
+      (e) =>
+        e.kind === "check" &&
+        !e.error &&
+        e.subject !== undefined &&
+        (e.action === "escalate_to_user" || e.action === "confirm" || e.action === "revise") &&
+        sameCommand(command, e.subject),
+    );
+  if (unsettled) {
+    const hash = createHash("sha1").update(command.trim()).digest("hex").slice(0, 16);
+    if (store.claim("bash-ask", hash)) {
+      store.appendGate(entry(input, "bash", "denied", `asked the user: ${unsettled.label} was ${unsettled.action}`));
+      return {
+        hookSpecificOutput: {
+          hookEventName: "PreToolUse",
+          permissionDecision: "ask",
+          permissionDecisionReason: bashAskAfterCheck(command, unsettled.action, unsettled.why),
+        },
+      };
+    }
+  }
 
   if (cfg.dependencyGate) {
     const added = dependencyAdds(command);

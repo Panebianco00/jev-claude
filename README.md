@@ -42,6 +42,11 @@ What the gates actually do:
 - **Dependency installs** (`npm install <pkg>`, `pip install`, `cargo add`, `go get`…) are a
   library choice, so one is refused until Jev has been consulted that turn. Restoring a
   lockfile (`npm install`, `pip install -r`) is never gated.
+- **A command Jev already said to stop on.** If Claude ran `check` on a command, got
+  `confirm`, `escalate_to_user` or `revise`, and then runs it anyway, you get a permission
+  prompt with Jev's finding instead of the command running silently.
+- **Choices you delegated stay delegated.** "You choose the framework" is read as exactly that:
+  Jev picks and flags it rather than handing the question back to you (except at high stakes).
 - **Entering plan mode mid-turn** injects the plan-mode instructions immediately, instead of
   waiting for the plan gate to refuse.
 - **Strict mode** adds a triage before the turn's first edit and an end-of-turn backstop. Off
