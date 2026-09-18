@@ -1430,7 +1430,7 @@ Nothing was lost: consult Jev, then send the same reply again and it will pass.`
 }
 function noKeyWarning() {
   return tidy(
-    `Jev: no TypeSafe API key found, so decisions will run unverified and Claude will use its own judgment. Set one in /plugin -> jev -> Configure, or export TYPESAFE_API_KEY; keys come from https://console.typesafe.ai/keys.`
+    `Jev: no TypeSafe API key found, so decisions will run unverified and Claude will use its own judgment. Set one with /plugin configure jev@jev-claude, or export TYPESAFE_API_KEY; keys come from https://console.typesafe.ai/keys.`
   );
 }
 var DISCLOSURE = tidy(

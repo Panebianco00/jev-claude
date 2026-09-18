@@ -73,7 +73,7 @@ claude plugin marketplace add Panebianco00/jev-claude
 claude plugin install jev@jev-claude --config api_key=YOUR_KEY
 ```
 
-Change either setting later with `/plugin` → jev → Configure. Exporting `TYPESAFE_API_KEY`
+Change either setting later with `/plugin configure jev@jev-claude`. Exporting `TYPESAFE_API_KEY`
 works too, and takes precedence. Nothing is built or downloaded at install: the bundles in
 `dist/` are committed. Node 20 or later must be on your `PATH`.
 

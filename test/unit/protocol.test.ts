@@ -361,7 +361,7 @@ describe("user-facing text", () => {
 
   it("noKeyWarning says how to set a key", () => {
     expect(protocol.noKeyWarning()).toContain("TYPESAFE_API_KEY");
-    expect(protocol.noKeyWarning()).toContain("Configure");
+    expect(protocol.noKeyWarning()).toContain("/plugin configure jev@jev-claude");
     expect(protocol.noKeyWarning()).toContain("TYPESAFE_API_KEY");
   });
 });
