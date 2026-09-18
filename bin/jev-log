@@ -1,0 +1,5 @@
+#!/usr/bin/env node
+import { fileURLToPath } from "node:url";
+import { dirname, resolve } from "node:path";
+process.argv.splice(2, 0, "log");
+await import(resolve(dirname(fileURLToPath(import.meta.url)), "..", "dist", "cli.mjs"));

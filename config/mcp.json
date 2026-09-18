@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "jev": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/dist/server.mjs"],
+      "env": {
+        "JEV_PLUGIN_VERSION": "0.1.0"
+      },
+      "alwaysLoad": true,
+      "timeout": 30000
+    }
+  }
+}

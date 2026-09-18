@@ -1,0 +1,14 @@
+{
+  "name": "jev-claude",
+  "description": "Jev decision layer for Claude Code.",
+  "owner": { "name": "Mattia Piancazzo" },
+  "plugins": [
+    {
+      "name": "jev",
+      "source": "./",
+      "description": "Make Claude Code consult TypeSafe Jev for every coding decision, including in plan mode.",
+      "version": "0.1.0",
+      "category": "productivity"
+    }
+  ]
+}

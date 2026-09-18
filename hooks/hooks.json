@@ -1,0 +1,162 @@
+{
+  "description": "Jev decision layer: protocol injection, self-approval and ledger for the Jev tools, plan gate, question router, Bash gate (destructive commands and dependency installs), and (strict only) mutation gate and stop backstop.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact|fork",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/dist/hook.mjs", "session-start"],
+            "timeout": 10,
+            "cloud": "device",
+            "statusMessage": "Jev: loading decision protocol"
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/dist/hook.mjs", "subagent-start"],
+            "timeout": 10,
+            "cloud": "device"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/dist/hook.mjs", "user-prompt-submit"],
+            "timeout": 10,
+            "cloud": "device"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "mcp__plugin_jev_jev__decide|mcp__plugin_jev_jev__check",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/dist/hook.mjs", "pre-jev-tool"],
+            "timeout": 10,
+            "cloud": "device",
+            "statusMessage": "Jev: consulting"
+          }
+        ]
+      },
+      {
+        "matcher": "ExitPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/dist/hook.mjs", "plan-gate"],
+            "timeout": 20,
+            "cloud": "device",
+            "statusMessage": "Jev: reviewing the plan"
+          }
+        ]
+      },
+      {
+        "matcher": "AskUserQuestion",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/dist/hook.mjs", "question-router"],
+            "timeout": 15,
+            "cloud": "device",
+            "statusMessage": "Jev: did the user already answer this?"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/dist/hook.mjs", "mutation-gate"],
+            "timeout": 10,
+            "cloud": "device"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/dist/hook.mjs", "bash-gate"],
+            "timeout": 10,
+            "cloud": "device"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "mcp__plugin_jev_jev__decide|mcp__plugin_jev_jev__check",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/dist/hook.mjs", "post-jev-tool"],
+            "timeout": 10,
+            "cloud": "device"
+          }
+        ]
+      },
+      {
+        "matcher": "ExitPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/dist/hook.mjs", "plan-exited"],
+            "timeout": 5,
+            "cloud": "device"
+          }
+        ]
+      },
+      {
+        "matcher": "EnterPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/dist/hook.mjs", "plan-entered"],
+            "timeout": 5,
+            "cloud": "device"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/dist/hook.mjs", "stop-backstop"],
+            "timeout": 15,
+            "cloud": "device"
+          }
+        ]
+      }
+    ]
+  }
+}

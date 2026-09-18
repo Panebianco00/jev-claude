@@ -1,0 +1,26 @@
+[
+  {
+    "name": "mutation-mechanical-rename",
+    "kind": "triage",
+    "input": { "kind": "mutation", "userRequest": "rename the variable `tmp` to `retryCount` in src/lib/backoff.ts", "evidence": { "tool": "Edit", "file_path": "src/lib/backoff.ts" } },
+    "expect": { "no": ["requires_choosing_an_approach"] }
+  },
+  {
+    "name": "mutation-open-design",
+    "kind": "triage",
+    "input": { "kind": "mutation", "userRequest": "add caching to the API so the dashboard loads faster", "evidence": { "tool": "Write", "file_path": "src/cache/index.ts" } },
+    "expect": { "yes": ["requires_choosing_an_approach"] }
+  },
+  {
+    "name": "stop-describes-a-choice",
+    "kind": "triage",
+    "input": { "kind": "stop", "userRequest": "add caching to the API", "evidence": { "assistant_message": "Done. I went with Redis rather than an in-process LRU because the service runs three replicas and they need to share the cache. The cache wraps GET /products with a 60 second TTL." } },
+    "expect": { "yes": ["message_describes_a_choice"] }
+  },
+  {
+    "name": "stop-plain-report",
+    "kind": "triage",
+    "input": { "kind": "stop", "userRequest": "fix the typo in README", "evidence": { "assistant_message": "Fixed the typo: 'recieve' is now 'receive' on line 42 of README.md. No other changes." } },
+    "expect": { "no": ["message_describes_a_choice"] }
+  }
+]

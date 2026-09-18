@@ -1,0 +1,32 @@
+{
+  "name": "jev-claude-plugin",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Route every Claude Code coding decision through TypeSafe Jev.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "node scripts/build.mjs && vitest run",
+    "test:watch": "vitest",
+    "validate": "claude plugin validate . --strict",
+    "test:unit": "vitest run test/unit",
+    "reinstall": "node scripts/build.mjs && claude plugin uninstall jev@jev-claude ; claude plugin install jev@jev-claude",
+    "calibrate": "node scripts/calibrate.ts",
+    "test:live": "JEV_LIVE=1 vitest run test/live"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@typesafe-ai/sdk": "^0.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

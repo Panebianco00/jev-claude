@@ -1,0 +1,42 @@
+[
+  {
+    "name": "stated-database",
+    "kind": "router",
+    "input": {
+      "userRequest": "build a small inventory service backed by Postgres, with a REST API",
+      "decisions": [],
+      "questions": [{ "question": "Which database should the inventory service use?", "options": [{ "label": "PostgreSQL" }, { "label": "MySQL" }, { "label": "SQLite" }] }]
+    },
+    "expect": { "yes": ["stated_0"], "choice": { "question_0": "PostgreSQL" } }
+  },
+  {
+    "name": "unstated-database",
+    "kind": "router",
+    "input": {
+      "userRequest": "build a small inventory service with a REST API",
+      "decisions": [],
+      "questions": [{ "question": "Which database should the inventory service use?", "options": [{ "label": "PostgreSQL" }, { "label": "MySQL" }, { "label": "SQLite" }] }]
+    },
+    "expect": { "no": ["stated_0"] }
+  },
+  {
+    "name": "stated-in-decision",
+    "kind": "router",
+    "input": {
+      "userRequest": "add auth to the admin panel",
+      "decisions": [{ "label": "auth-method", "choice": "oauth_github" }],
+      "questions": [{ "question": "How should admins sign in?", "options": [{ "label": "GitHub OAuth" }, { "label": "Email and password" }, { "label": "Magic link" }] }]
+    },
+    "expect": { "yes": ["stated_0"], "choice": { "question_0": "GitHub OAuth" } }
+  },
+  {
+    "name": "taste-not-stated",
+    "kind": "router",
+    "input": {
+      "userRequest": "make the dashboard look nicer",
+      "decisions": [],
+      "questions": [{ "question": "Which visual direction do you want for the dashboard?", "options": [{ "label": "Dark and dense" }, { "label": "Light and airy" }, { "label": "High-contrast minimal" }] }]
+    },
+    "expect": { "no": ["stated_0"] }
+  }
+]

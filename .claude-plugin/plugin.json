@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "jev",
+  "version": "0.1.0",
+  "description": "Routes Claude Code's coding decisions through TypeSafe Jev: typed choices with probabilities instead of silent judgment calls, enforced at plan approval and before questions to the user.",
+  "author": {
+    "name": "Mattia Piancazzo",
+    "email": "mattiapiancazzo03@gmail.com"
+  },
+  "keywords": [
+    "decisions",
+    "typesafe",
+    "jev",
+    "plan-mode",
+    "governance"
+  ],
+  "license": "MIT",
+  "mcpServers": "./config/mcp.json",
+  "userConfig": {
+    "api_key": {
+      "type": "string",
+      "title": "TypeSafe API key",
+      "description": "Your key from https://console.typesafe.ai/keys. Stored in your system keychain. Leave empty to set it later with TYPESAFE_API_KEY; without a key every decision runs unverified.",
+      "sensitive": true,
+      "required": false
+    },
+    "enforcement": {
+      "type": "string",
+      "title": "Enforcement level",
+      "description": "soft: protocol only, no gates. standard: plan, question and Bash gates. strict: adds the first-edit triage and the end-of-turn backstop. off: disabled.",
+      "options": [
+        "standard",
+        "soft",
+        "strict",
+        "off"
+      ],
+      "default": "standard",
+      "required": false
+    }
+  }
+}
